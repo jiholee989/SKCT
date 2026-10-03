@@ -18,9 +18,9 @@ function formatTime(totalSeconds) {
   return `${String(m).padStart(2, "0")}분 ${String(s).padStart(2, "0")}초`;
 }
 
-export default function Timer({ onActiveRangeChange, onModeChange, onFifteenAreaChange }) {
+export default function Timer({ onActiveRangeChange, onModeChange, onPracticeAreaChange }) {
   const [mode, setMode] = useState("mockExam");
-  const [fifteenAreaIndex, setFifteenAreaIndex] = useState(0);
+  const [practiceAreaIndex, setPracticeAreaIndex] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
   const startedAt = useRef(null);
@@ -63,18 +63,16 @@ export default function Timer({ onActiveRangeChange, onModeChange, onFifteenArea
   }, [elapsed, mode, running]);
 
   useEffect(() => {
-    if (mode === "fifteen") {
-      const area = AREAS[fifteenAreaIndex];
+    if (mode === "fifteen" || mode === "stopwatch") {
+      const area = AREAS[practiceAreaIndex];
       onActiveRangeChange?.({ start: area.start, end: area.end });
-    } else if (!examMode) {
-      onActiveRangeChange?.(null);
     } else if (exam.finished) {
       onActiveRangeChange?.({ start: 1, end: 0 }); // lock all after exam ends
     } else {
       const seg = MOCK_SEGMENTS[exam.index];
       onActiveRangeChange?.(seg.range ?? { start: 1, end: 0 }); // 쉬는 시간: 전부 잠금
     }
-  }, [mode, examMode, exam.index, exam.finished, fifteenAreaIndex, onActiveRangeChange]);
+  }, [mode, exam.index, exam.finished, practiceAreaIndex, onActiveRangeChange]);
 
   const timeFinished = mode === "fifteen" && elapsed >= FIFTEEN_MINUTES;
 
@@ -116,12 +114,14 @@ export default function Timer({ onActiveRangeChange, onModeChange, onFifteenArea
 
   const currentSegment = MOCK_SEGMENTS[exam.index];
 
-  const selectFifteenArea = (value) => {
+  const selectPracticeArea = (value) => {
     const index = Number(value);
     setRunning(false);
+    startedAt.current = null;
+    elapsedBeforeStart.current = 0;
     setElapsed(0);
-    setFifteenAreaIndex(index);
-    onFifteenAreaChange?.(index);
+    setPracticeAreaIndex(index);
+    onPracticeAreaChange?.(index);
   };
 
   return (
@@ -133,8 +133,8 @@ export default function Timer({ onActiveRangeChange, onModeChange, onFifteenArea
             <option value="stopwatch">스톱워치</option>
             <option value="mockExam">모의고사 모드</option>
           </select>
-          {mode === "fifteen" && (
-            <select className="time-select" aria-label="15분 영역 선택" value={fifteenAreaIndex} onChange={(e) => selectFifteenArea(e.target.value)}>
+          {!examMode && (
+            <select className="time-select" aria-label="영역 선택" value={practiceAreaIndex} onChange={(e) => selectPracticeArea(e.target.value)}>
               {AREAS.map((area, index) => <option key={area.name} value={index}>{area.name}</option>)}
             </select>
           )}

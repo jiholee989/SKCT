@@ -14,7 +14,7 @@ export default function App() {
   const [gradingMode, setGradingMode] = useState(false);
   const [activeRange, setActiveRange] = useState(null);
   const [timerMode, setTimerMode] = useState("mockExam");
-  const [fifteenAreaIndex, setFifteenAreaIndex] = useState(0);
+  const [practiceAreaIndex, setPracticeAreaIndex] = useState(0);
   const [records, setRecords] = useLocalStorage("skct-exam-records", []);
   const [narrow, setNarrow] = useState(() => window.matchMedia("(max-width: 768px)").matches);
 
@@ -46,13 +46,13 @@ export default function App() {
 
         <div className="omr-container">
           <div className={`omr-panel ${gradingMode ? "grading-mode" : ""}`}>
-            <OMRSheet onGradingToggle={setGradingMode} activeRange={activeRange} gradingArea={timerMode === "fifteen" ? AREAS[fifteenAreaIndex] : null} examMode={timerMode === "mockExam"} onRecord={saveRecord} />
+            <OMRSheet onGradingToggle={setGradingMode} activeRange={activeRange} gradingArea={timerMode !== "mockExam" ? AREAS[practiceAreaIndex] : null} examMode={timerMode === "mockExam"} onRecord={saveRecord} />
           </div>
         </div>
 
         <div className={`right-panel ${narrow ? "expanded" : ""}`}>
           <div className="timer-section">
-            <Timer onActiveRangeChange={setActiveRange} onModeChange={setTimerMode} onFifteenAreaChange={setFifteenAreaIndex} />
+            <Timer onActiveRangeChange={setActiveRange} onModeChange={setTimerMode} onPracticeAreaChange={setPracticeAreaIndex} />
           </div>
           <div className="notepad-section">
             <NotePad />
