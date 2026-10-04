@@ -25,6 +25,7 @@ export default function Timer({ onActiveRangeChange, onModeChange, onPracticeAre
   const [practiceAreaIndex, setPracticeAreaIndex] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
+  const [examStarted, setExamStarted] = useState(false);
   const startedAt = useRef(null);
   const elapsedBeforeStart = useRef(0);
   const examMode = mode === "mockExam" || mode === "lgExam";
@@ -69,19 +70,22 @@ export default function Timer({ onActiveRangeChange, onModeChange, onPracticeAre
     if (mode === "fifteen" || mode === "stopwatch") {
       const area = AREAS[practiceAreaIndex];
       onActiveRangeChange?.({ start: area.start, end: area.end });
+    } else if (!examStarted) {
+      onActiveRangeChange?.(null); // allow marking every exam area before Start
     } else if (exam.finished) {
       onActiveRangeChange?.({ start: 1, end: 0 }); // lock all after exam ends
     } else {
       const seg = examSegments[exam.index];
       onActiveRangeChange?.(seg.range ?? { start: 1, end: 0 }); // 쉬는 시간: 전부 잠금
     }
-  }, [mode, exam.index, exam.finished, examSegments, practiceAreaIndex, onActiveRangeChange]);
+  }, [mode, examStarted, exam.index, exam.finished, examSegments, practiceAreaIndex, onActiveRangeChange]);
 
   const timeFinished = mode === "fifteen" && elapsed >= FIFTEEN_MINUTES;
 
   const toggleRun = () => {
     if (examMode && exam.finished) return;
     if (timeFinished) return;
+    if (examMode && !running) setExamStarted(true);
     if (mode === "stopwatch") {
       if (running) {
         elapsedBeforeStart.current += performance.now() - startedAt.current;
@@ -96,6 +100,7 @@ export default function Timer({ onActiveRangeChange, onModeChange, onPracticeAre
 
   const reset = () => {
     setRunning(false);
+    setExamStarted(false);
     startedAt.current = null;
     elapsedBeforeStart.current = 0;
     if (examMode) setExam({ index: 0, remaining: examSegments[0].duration, finished: false });
@@ -104,6 +109,7 @@ export default function Timer({ onActiveRangeChange, onModeChange, onPracticeAre
 
   const selectMode = (value) => {
     setRunning(false);
+    setExamStarted(false);
     startedAt.current = null;
     elapsedBeforeStart.current = 0;
     setElapsed(0);
