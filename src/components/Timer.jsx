@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef } from "react";
-import { AREAS } from "../areas";
+import { AREAS, LG_AREAS } from "../areas";
 
 const FIFTEEN_MINUTES = 15 * 60;
 const MOCK_SECTION_SECONDS = 15 * 60;
 const MOCK_BREAK_SECONDS = 60;
 
 // exam segment, break segment, exam segment, break segment, ... (no trailing break)
-const MOCK_SEGMENTS = AREAS.flatMap((area, i) => {
+const makeExamSegments = (areas) => areas.flatMap((area, i) => {
   const segs = [{ type: "exam", label: area.name, duration: MOCK_SECTION_SECONDS, range: { start: area.start, end: area.end } }];
-  if (i < AREAS.length - 1) segs.push({ type: "break", label: "쉬는 시간", duration: MOCK_BREAK_SECONDS, range: null });
+  if (i < areas.length - 1) segs.push({ type: "break", label: "쉬는 시간", duration: MOCK_BREAK_SECONDS, range: null });
   return segs;
 });
+const MOCK_SEGMENTS = makeExamSegments(AREAS);
+const LG_SEGMENTS = makeExamSegments(LG_AREAS);
 
 function formatTime(totalSeconds) {
   const m = Math.floor(totalSeconds / 60);
@@ -25,7 +27,8 @@ export default function Timer({ onActiveRangeChange, onModeChange, onPracticeAre
   const [running, setRunning] = useState(false);
   const startedAt = useRef(null);
   const elapsedBeforeStart = useRef(0);
-  const examMode = mode === "mockExam";
+  const examMode = mode === "mockExam" || mode === "lgExam";
+  const examSegments = mode === "lgExam" ? LG_SEGMENTS : MOCK_SEGMENTS;
   const [exam, setExam] = useState({ index: 0, remaining: MOCK_SEGMENTS[0].duration, finished: false });
 
   useEffect(() => {
@@ -42,8 +45,8 @@ export default function Timer({ onActiveRangeChange, onModeChange, onPracticeAre
           if (prev.finished) return prev;
           if (prev.remaining > 1) return { ...prev, remaining: prev.remaining - 1 };
           const nextIndex = prev.index + 1;
-          return nextIndex < MOCK_SEGMENTS.length
-            ? { index: nextIndex, remaining: MOCK_SEGMENTS[nextIndex].duration, finished: false }
+          return nextIndex < examSegments.length
+            ? { index: nextIndex, remaining: examSegments[nextIndex].duration, finished: false }
             : { ...prev, remaining: 0, finished: true };
         });
       } else {
@@ -51,7 +54,7 @@ export default function Timer({ onActiveRangeChange, onModeChange, onPracticeAre
       }
     }, 1000);
     return () => clearInterval(id);
-  }, [running, mode, examMode]);
+  }, [running, mode, examMode, examSegments]);
 
   useEffect(() => {
     if (exam.finished) setRunning(false);
@@ -69,10 +72,10 @@ export default function Timer({ onActiveRangeChange, onModeChange, onPracticeAre
     } else if (exam.finished) {
       onActiveRangeChange?.({ start: 1, end: 0 }); // lock all after exam ends
     } else {
-      const seg = MOCK_SEGMENTS[exam.index];
+      const seg = examSegments[exam.index];
       onActiveRangeChange?.(seg.range ?? { start: 1, end: 0 }); // 쉬는 시간: 전부 잠금
     }
-  }, [mode, exam.index, exam.finished, practiceAreaIndex, onActiveRangeChange]);
+  }, [mode, exam.index, exam.finished, examSegments, practiceAreaIndex, onActiveRangeChange]);
 
   const timeFinished = mode === "fifteen" && elapsed >= FIFTEEN_MINUTES;
 
@@ -95,7 +98,7 @@ export default function Timer({ onActiveRangeChange, onModeChange, onPracticeAre
     setRunning(false);
     startedAt.current = null;
     elapsedBeforeStart.current = 0;
-    if (examMode) setExam({ index: 0, remaining: MOCK_SEGMENTS[0].duration, finished: false });
+    if (examMode) setExam({ index: 0, remaining: examSegments[0].duration, finished: false });
     else setElapsed(0);
   };
 
@@ -104,15 +107,15 @@ export default function Timer({ onActiveRangeChange, onModeChange, onPracticeAre
     startedAt.current = null;
     elapsedBeforeStart.current = 0;
     setElapsed(0);
-    const isExam = value === "mockExam";
+    const isExam = value === "mockExam" || value === "lgExam";
     setMode(value);
     onModeChange?.(value);
     if (isExam) {
-      setExam({ index: 0, remaining: MOCK_SEGMENTS[0].duration, finished: false });
+      setExam({ index: 0, remaining: (value === "lgExam" ? LG_SEGMENTS : MOCK_SEGMENTS)[0].duration, finished: false });
     }
   };
 
-  const currentSegment = MOCK_SEGMENTS[exam.index];
+  const currentSegment = examSegments[exam.index];
 
   const selectPracticeArea = (value) => {
     const index = Number(value);
@@ -132,6 +135,7 @@ export default function Timer({ onActiveRangeChange, onModeChange, onPracticeAre
             <option value="fifteen">15분</option>
             <option value="stopwatch">스톱워치</option>
             <option value="mockExam">모의고사 모드</option>
+            <option value="lgExam">LG 모의고사 모드</option>
           </select>
           {!examMode && (
             <select className="time-select" aria-label="영역 선택" value={practiceAreaIndex} onChange={(e) => selectPracticeArea(e.target.value)}>

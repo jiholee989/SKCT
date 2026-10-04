@@ -13,17 +13,17 @@ const STATUS_FILTERS = [
 ];
 
 // Buckets items (each with a `.num`) into one array per AREA, in AREA order.
-function groupByArea(items, getNum = (item) => item.num) {
-  return AREAS.map((area) => ({
+function groupByArea(items, areas = AREAS) {
+  return areas.map((area) => ({
     area,
     items: items.filter((item) => {
-      const num = getNum(item);
+      const num = item.num;
       return num >= area.start && num <= area.end;
     }),
   }));
 }
 
-export default function OMRSheet({ onGradingToggle, activeRange, gradingArea, examMode, onRecord }) {
+export default function OMRSheet({ onGradingToggle, activeRange, gradingArea, examAreas = AREAS, examMode, onRecord }) {
   const recordIdRef = useRef(null); // current attempt's row in the 학습 기록 table
   const lastCapturedRef = useRef(null); // memo+canvas last copied into a question
   const [answers, setAnswers] = useLocalStorage("skct-omr-answers", {});
@@ -35,6 +35,9 @@ export default function OMRSheet({ onGradingToggle, activeRange, gradingArea, ex
   const [summaryAreaIndex, setSummaryAreaIndex] = useState(0);
   const [snapshots, setSnapshots] = useLocalStorage("skct-question-snapshots", {});
   const [viewingSnapshot, setViewingSnapshot] = useState(null);
+  const displayAreas = gradingArea ? [gradingArea] : examAreas;
+  const resultAreas = gradingArea ? AREAS : examAreas;
+  const gradingNumbers = displayAreas.flatMap((area) => QUESTION_NUMBERS.slice(area.start - 1, area.end));
 
   useEffect(() => {
     onGradingToggle?.(gradingMode);
@@ -44,8 +47,8 @@ export default function OMRSheet({ onGradingToggle, activeRange, gradingArea, ex
     setGradingInput("");
     setGradingResult(null);
     setQuestionStatuses([]);
-    if (gradingArea) setSummaryAreaIndex(AREAS.indexOf(gradingArea));
-  }, [gradingArea]);
+    setSummaryAreaIndex(gradingArea ? AREAS.indexOf(gradingArea) : 0);
+  }, [gradingArea, examAreas]);
 
   // NotePad already keeps its live content in localStorage - copy whatever's
   // there right now into this question's slot instead of lifting shared state.
@@ -97,9 +100,17 @@ export default function OMRSheet({ onGradingToggle, activeRange, gradingArea, ex
       alert(`${gradingArea.name} 영역의 정답 20개를 입력해주세요.`);
       return;
     }
+    if (key.length > gradingNumbers.length) {
+      alert(`정답은 최대 ${gradingNumbers.length}개까지 입력할 수 있습니다.`);
+      return;
+    }
+    if (!gradingArea && examAreas.length !== AREAS.length && key.length !== gradingNumbers.length) {
+      alert(`LG 모의고사 정답 ${gradingNumbers.length}개를 영역 순서대로 입력해주세요.`);
+      return;
+    }
     let correct = 0;
     const statuses = key.map((correctAnswer, idx) => {
-      const num = (gradingArea?.start ?? 1) + idx;
+      const num = gradingNumbers[idx];
       const userAnswer = answers[num];
       let status;
       if (userAnswer === undefined) status = "unanswered";
@@ -157,7 +168,7 @@ export default function OMRSheet({ onGradingToggle, activeRange, gradingArea, ex
   // (answers/snapshots/grading key) stays global.
   const toLocalNum = (globalNum, area) => globalNum - area.start + 1;
 
-  const summaryArea = AREAS[summaryAreaIndex];
+  const summaryArea = resultAreas[summaryAreaIndex] ?? resultAreas[0];
   const summaryQuestions = questionStatuses.filter((q) => q.num >= summaryArea.start && q.num <= summaryArea.end);
   const resultNumbers = (status) => summaryQuestions
     .filter((q) => q.status === status)
@@ -223,7 +234,7 @@ export default function OMRSheet({ onGradingToggle, activeRange, gradingArea, ex
         <div className="grading-section">
           <div className="grading-input">
             <h3>정답 입력</h3>
-            <p className="help-text">{gradingArea ? `${gradingArea.name} 1~20번 정답을 입력하세요 (쉼표 또는 공백으로 구분)` : "정답을 숫자로 입력하세요 (쉼표 또는 공백으로 구분)"}</p>
+            <p className="help-text">{gradingArea ? `${gradingArea.name} 1~20번 정답을 입력하세요 (쉼표 또는 공백으로 구분)` : examAreas.length !== AREAS.length ? "언어이해 → 언어추리 → 자료해석 → 창의수리 순서로 정답 80개를 입력하세요" : "정답을 숫자로 입력하세요 (쉼표 또는 공백으로 구분)"}</p>
             <p className="help-text-example">예: 1,2,3,4,5 또는 1 2 3 4 5</p>
             <textarea
               value={gradingInput}
@@ -251,7 +262,7 @@ export default function OMRSheet({ onGradingToggle, activeRange, gradingArea, ex
               </div>
               {questionStatuses.length > 0 && (
                 <div className="area-score-breakdown">
-                  {groupByArea(questionStatuses).map(({ area, items }) => {
+                  {groupByArea(questionStatuses, resultAreas).map(({ area, items }) => {
                     const correct = items.filter((q) => q.status === "correct").length;
                     const wrong = items.filter((q) => q.status === "wrong").length;
                     const unanswered = items.filter((q) => q.status === "unanswered").length;
@@ -268,8 +279,8 @@ export default function OMRSheet({ onGradingToggle, activeRange, gradingArea, ex
               )}
               <div className="result-number-summary">
                 <h4>영역별 오답·미답 번호</h4>
-                <div className="summary-area-buttons" role="group" aria-label="오답·미답 번호 영역 선택">
-                  {AREAS.map((area, index) => (
+                <div className="summary-area-buttons" style={{ gridTemplateColumns: `repeat(${resultAreas.length}, minmax(0, 1fr))` }} role="group" aria-label="오답·미답 번호 영역 선택">
+                  {resultAreas.map((area, index) => (
                     <button key={area.name} type="button" aria-pressed={summaryAreaIndex === index}
                       className={summaryAreaIndex === index ? "active" : ""}
                       onClick={() => setSummaryAreaIndex(index)}>{area.name}</button>
@@ -303,7 +314,7 @@ export default function OMRSheet({ onGradingToggle, activeRange, gradingArea, ex
                   <div className="question-results-list">
                     {(() => {
                       const filtered = questionStatuses.filter((q) => statusFilter === "all" || q.status === statusFilter);
-                      return groupByArea(filtered)
+                      return groupByArea(filtered, resultAreas)
                         .filter((g) => g.items.length > 0)
                         .map((g) => (
                           <div className="omr-area" key={g.area.name}>
@@ -323,7 +334,7 @@ export default function OMRSheet({ onGradingToggle, activeRange, gradingArea, ex
         </div>
       ) : (
         <div className="omr-content">
-          {(gradingArea ? [gradingArea] : AREAS).map((area) => (
+          {displayAreas.map((area) => (
             <div className="omr-area" key={area.name}>
               <h3 className="omr-area-title">{area.name}</h3>
               <div className="omr-grid">
@@ -335,9 +346,7 @@ export default function OMRSheet({ onGradingToggle, activeRange, gradingArea, ex
       )}
 
       <div className="omr-footer">
-        <div className="answer-count">표시한 답안: {gradingArea
-          ? QUESTION_NUMBERS.slice(gradingArea.start - 1, gradingArea.end).filter((num) => answers[num] !== undefined).length
-          : Object.keys(answers).length} / {gradingArea ? 20 : QUESTION_COUNT}</div>
+        <div className="answer-count">표시한 답안: {gradingNumbers.filter((num) => answers[num] !== undefined).length} / {gradingNumbers.length}</div>
       </div>
 
       {/* Hidden in normal view; @media print swaps this in place of the whole app (see App.css). */}
@@ -345,7 +354,7 @@ export default function OMRSheet({ onGradingToggle, activeRange, gradingArea, ex
         <h1>오답노트</h1>
         <section>
           <h2>못 푼 문제</h2>
-          {groupByArea(questionStatuses.filter((q) => q.status === "unanswered")).map((g) => (
+          {groupByArea(questionStatuses.filter((q) => q.status === "unanswered"), resultAreas).map((g) => (
             <p key={g.area.name}>
               <strong>{g.area.name}:</strong> {g.items.length > 0 ? g.items.map((q) => toLocalNum(q.num, g.area)).join(", ") : "없음"}
             </p>
@@ -353,7 +362,7 @@ export default function OMRSheet({ onGradingToggle, activeRange, gradingArea, ex
         </section>
         <section>
           <h2>틀린 문제</h2>
-          {groupByArea(questionStatuses.filter((q) => q.status === "wrong")).map((g) =>
+          {groupByArea(questionStatuses.filter((q) => q.status === "wrong"), resultAreas).map((g) =>
             g.items.length === 0 ? null : (
               <div key={g.area.name} className="print-area-block">
                 <h3 className="print-area-title">{g.area.name}</h3>

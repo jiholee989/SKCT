@@ -5,3 +5,5 @@ export const AREAS = AREA_NAMES.map((name, i) => ({
   start: i * QUESTIONS_PER_AREA + 1,
   end: (i + 1) * QUESTIONS_PER_AREA,
 }));
+
+export const LG_AREAS = [AREAS[0], AREAS[3], AREAS[1], AREAS[2]];

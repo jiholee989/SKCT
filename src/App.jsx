@@ -6,7 +6,7 @@ import Timer from "./components/Timer";
 import NotePad from "./components/NotePad";
 import Calculator from "./components/Calculator";
 import { useLocalStorage } from "./hooks/useLocalStorage";
-import { AREAS } from "./areas";
+import { AREAS, LG_AREAS } from "./areas";
 import "./App.css";
 
 export default function App() {
@@ -46,7 +46,7 @@ export default function App() {
 
         <div className="omr-container">
           <div className={`omr-panel ${gradingMode ? "grading-mode" : ""}`}>
-            <OMRSheet onGradingToggle={setGradingMode} activeRange={activeRange} gradingArea={timerMode !== "mockExam" ? AREAS[practiceAreaIndex] : null} examMode={timerMode === "mockExam"} onRecord={saveRecord} />
+            <OMRSheet onGradingToggle={setGradingMode} activeRange={activeRange} gradingArea={timerMode === "fifteen" || timerMode === "stopwatch" ? AREAS[practiceAreaIndex] : null} examAreas={timerMode === "lgExam" ? LG_AREAS : AREAS} examMode={timerMode === "mockExam" || timerMode === "lgExam"} onRecord={saveRecord} />
           </div>
         </div>
 
