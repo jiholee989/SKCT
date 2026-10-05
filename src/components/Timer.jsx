@@ -3,16 +3,17 @@ import { AREAS, LG_AREAS } from "../areas";
 
 const FIFTEEN_MINUTES = 15 * 60;
 const MOCK_SECTION_SECONDS = 15 * 60;
+const LG_SECTION_SECONDS = 20 * 60;
 const MOCK_BREAK_SECONDS = 60;
 
 // exam segment, break segment, exam segment, break segment, ... (no trailing break)
-const makeExamSegments = (areas) => areas.flatMap((area, i) => {
-  const segs = [{ type: "exam", label: area.name, duration: MOCK_SECTION_SECONDS, range: { start: area.start, end: area.end } }];
+const makeExamSegments = (areas, sectionSeconds) => areas.flatMap((area, i) => {
+  const segs = [{ type: "exam", label: area.name, duration: sectionSeconds, range: { start: area.start, end: area.end } }];
   if (i < areas.length - 1) segs.push({ type: "break", label: "쉬는 시간", duration: MOCK_BREAK_SECONDS, range: null });
   return segs;
 });
-const MOCK_SEGMENTS = makeExamSegments(AREAS);
-const LG_SEGMENTS = makeExamSegments(LG_AREAS);
+const MOCK_SEGMENTS = makeExamSegments(AREAS, MOCK_SECTION_SECONDS);
+const LG_SEGMENTS = makeExamSegments(LG_AREAS, LG_SECTION_SECONDS);
 
 function formatTime(totalSeconds) {
   const m = Math.floor(totalSeconds / 60);
