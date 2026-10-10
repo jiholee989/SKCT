@@ -108,7 +108,6 @@ export default function Calculator() {
   return (
     <div className="calculator">
       <div className="calc-header">계산기</div>
-      <div className="calc-display">{display}</div>
       <div className="calc-history" aria-label="최근 연산 기록">
         <div className="calc-history-title">최근 연산</div>
         {history.length === 0 ? (
@@ -124,6 +123,7 @@ export default function Calculator() {
           </ol>
         )}
       </div>
+      <div className="calc-display">{display}</div>
       <div className="calc-buttons">
         <button className="btn-function" onClick={() => handleParentheses("(")}>(</button>
         <button className="btn-function" onClick={() => handleParentheses(")")}>)</button>
