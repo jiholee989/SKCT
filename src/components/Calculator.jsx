@@ -31,14 +31,19 @@ export default function Calculator() {
     setIsResultShown(false);
   };
 
-  const handleClear = () => {
+  const handleClearDisplay = () => {
     setDisplay("0");
     setIsResultShown(false);
   };
 
+  const handleClearAll = () => {
+    handleClearDisplay();
+    setHistory([]);
+  };
+
   const handleBackspace = () => {
     if (isResultShown || display === "Error") {
-      handleClear();
+      handleClearDisplay();
       return;
     }
     const e = display.slice(0, -1);
@@ -98,7 +103,7 @@ export default function Calculator() {
       else if (key === "%") handlePercent();
       else if (key === "Enter" || key === "=") handleEquals();
       else if (key === "Backspace") handleBackspace();
-      else if (key.toLowerCase() === "c" || key === "Escape") handleClear();
+      else if (key.toLowerCase() === "c" || key === "Escape") handleClearAll();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -114,7 +119,7 @@ export default function Calculator() {
           <div className="calc-history-empty">기록 없음</div>
         ) : (
           <ol>
-            {history.map(({ expression, result }, index) => (
+            {[...history].reverse().map(({ expression, result }, index) => (
               <li key={index} title={`${expression} = ${result}`}>
                 <span className="calc-history-expression">{expression}</span>
                 <span className="calc-history-result">= {result}</span>
@@ -128,8 +133,8 @@ export default function Calculator() {
         <button className="btn-function" onClick={() => handleParentheses("(")}>(</button>
         <button className="btn-function" onClick={() => handleParentheses(")")}>)</button>
         <button className="btn-function" onClick={handlePercent}>%</button>
-        <button className="btn-function" onClick={handleBackspace}>C</button>
-        <button className="btn-function" onClick={handleClear}>AC</button>
+        <button className="btn-function" onClick={handleClearAll}>C</button>
+        <button className="btn-function" onClick={handleClearAll}>AC</button>
         <button className="btn-function" onClick={handleSign}>+/-</button>
         <button className="btn-operator" onClick={() => handleOperator("÷")}>÷</button>
         <button className="btn-operator" onClick={() => handleOperator("×")}>×</button>
