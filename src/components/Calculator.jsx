@@ -6,6 +6,7 @@ const findLastNumberRegex = /(-?\d+\.?\d*)$/;
 export default function Calculator() {
   const [display, setDisplay] = useLocalStorage("skct-calc-display", "0");
   const [isResultShown, setIsResultShown] = useLocalStorage("skct-calc-result-shown", false);
+  const [history, setHistory] = useLocalStorage("skct-calc-history", []);
 
   const handleNumber = (e) => {
     setDisplay(isResultShown || display === "0" || display === "Error" ? e : (i) => i + e);
@@ -73,7 +74,13 @@ export default function Calculator() {
       const evalExpression = display.replace(/×/g, "*").replace(/÷/g, "/");
       // eslint-disable-next-line no-eval
       const result = eval(evalExpression);
-      setDisplay(isFinite(result) ? String(parseFloat(result.toPrecision(15))) : "Error");
+      if (Number.isFinite(result)) {
+        const formattedResult = String(parseFloat(result.toPrecision(15)));
+        setDisplay(formattedResult);
+        setHistory((previous) => [{ expression: display, result: formattedResult }, ...previous].slice(0, 3));
+      } else {
+        setDisplay("Error");
+      }
     } catch {
       setDisplay("Error");
     }
@@ -102,6 +109,21 @@ export default function Calculator() {
     <div className="calculator">
       <div className="calc-header">계산기</div>
       <div className="calc-display">{display}</div>
+      <div className="calc-history" aria-label="최근 연산 기록">
+        <div className="calc-history-title">최근 연산</div>
+        {history.length === 0 ? (
+          <div className="calc-history-empty">기록 없음</div>
+        ) : (
+          <ol>
+            {history.map(({ expression, result }, index) => (
+              <li key={index} title={`${expression} = ${result}`}>
+                <span className="calc-history-expression">{expression}</span>
+                <span className="calc-history-result">= {result}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
       <div className="calc-buttons">
         <button className="btn-function" onClick={() => handleParentheses("(")}>(</button>
         <button className="btn-function" onClick={() => handleParentheses(")")}>)</button>
