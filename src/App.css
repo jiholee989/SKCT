@@ -538,9 +538,12 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
   max-width: 400px;
   min-width: 300px;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .timer-section, .notepad-section, .calculator-section {
   background-color: #fff;
@@ -548,12 +551,11 @@
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
-.timer-section { padding: 12px; min-height: 100px; }
-.notepad-section { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-/* Capped, not flex:1 - letting it grow with all leftover height (e.g. on a
-   tall/maximized window) blew the buttons up into oversized squares. Extra
-   space now goes to the notepad instead, which actually benefits from it. */
-.calculator-section { flex: 0 1 450px; overflow: hidden; padding: 12px; display: flex; flex-direction: column; }
+.timer-section { padding: 8px; min-height: 100px; flex-shrink: 0; }
+/* Keep usable writing space even on short screens; the right panel scrolls
+   instead of squeezing the memo or canvas to make room for the calculator. */
+.notepad-section { flex: 1 0 260px; overflow: hidden; display: flex; flex-direction: column; }
+.calculator-section { flex: 0 0 360px; overflow: hidden; padding: 12px; display: flex; flex-direction: column; }
 
 /* ---------- Timer ---------- */
 .timer {
@@ -636,7 +638,7 @@
 .calc-display {
   background-color: #f7fafc;
   color: #2d3748;
-  padding: 10px 12px;
+  padding: 6px 12px;
   text-align: right;
   font-size: 24px;
   border-radius: 6px;
@@ -816,6 +818,8 @@
   .narrow-screen .omr-container,
   .narrow-screen .right-panel { width: 100%; flex: none; height: auto; align-items: stretch; }
   .narrow-screen .omr-panel { width: 100%; height: auto; max-height: 45vh; }
+  .narrow-screen .right-panel { overflow: visible; }
+  .narrow-screen .notepad-section { flex: none; height: 360px; }
 
   .calc-header { font-size: 13px; }
   .calc-display { font-size: 24px; padding: 10px; min-height: 40px; }
