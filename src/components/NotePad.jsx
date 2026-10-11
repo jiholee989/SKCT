@@ -21,6 +21,7 @@ export default function NotePad() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const container = canvas.parentElement;
+    if (sizedRef.current && canvas.width === container.offsetWidth && canvas.height === container.offsetHeight) return;
     // canvas.width/height default to 300/150 even when never drawn to, so that alone
     // can't tell us whether there's real content - track it explicitly instead.
     const snapshot = sizedRef.current
@@ -47,9 +48,10 @@ export default function NotePad() {
   useEffect(() => {
     if (mode !== "drawing") return;
     resizeCanvasPreservingContent();
-    const onWindowResize = () => resizeCanvasPreservingContent();
-    window.addEventListener("resize", onWindowResize);
-    return () => window.removeEventListener("resize", onWindowResize);
+    // Observe the final container size after responsive layout and tab changes.
+    const observer = new ResizeObserver(resizeCanvasPreservingContent);
+    observer.observe(canvasRef.current.parentElement);
+    return () => observer.disconnect();
   }, [mode, resizeCanvasPreservingContent]);
 
   useEffect(() => {
